@@ -156,8 +156,7 @@ func main() {
 		rss.Items = append(rss.Items, item)
 	}
 
-	// generate xml.
-	err = gorselib.WriteFeedXml(&rss, *outputFile)
+	err = gorselib.WriteFeedXML(&rss, *outputFile)
 	if err != nil {
 		log.Printf("Failed to write XML: %s", err.Error())
 		os.Exit(1)
