@@ -1,48 +1,49 @@
-/*
- * generate an rss feed using a postgres database containing tweets
- */
-
+//
+// Generate an RSS feed from a PostgreSQL database containing tweets.
+//
+// The tweet database is the one populated by my twitter-tcl twitter_poll
+// program.
+//
 package main
 
 import (
 	"database/sql"
 	"flag"
 	"fmt"
-	_ "github.com/lib/pq"
 	"log"
 	"os"
+	"time"
+
+	_ "github.com/lib/pq"
 	"summercat.com/config"
 	"summercat.com/gorse/gorselib"
-	"time"
 )
 
-// URI prefix to generate unique URIs.
-// this is not to be a real URI (though I suppose it could link to the
-// tweets on twitter) but only to provide uniqueness.
-var UriPrefix = "https://leviathan.summercat.com/tweets/"
+// FeedURI is the URI set on the RSS feed's channel element's link element.
+// It need not be a real URI but should be unique.
+var FeedURI = "https://leviathan.summercat.com/tweets/"
 
-// describe a tweet from the database.
+// Tweet describe a tweet pulled from the database.
 type Tweet struct {
 	Nick    string
 	Text    string
 	Time    time.Time
-	TweetId int64
+	TweetID int64
 }
 
-// configuration items.
+// MyConfig holds configuration values.
 type MyConfig struct {
-	DbUser string
-	DbPass string
-	DbName string
-	DbHost string
+	DBUser string
+	DBPass string
+	DBName string
+	DBHost string
 	// the number of recent tweets to put in the xml.
 	NumTweets uint64
 }
 
-// connectToDb opens a new connection to the database.
-func connectToDb(name string, user string, pass string, host string) (*sql.DB,
+// connectToDB opens a new connection to the database.
+func connectToDB(name string, user string, pass string, host string) (*sql.DB,
 	error) {
-	// connect to the database.
 	dsn := fmt.Sprintf("user=%s password=%s dbname=%s host=%s", user, pass, name,
 		host)
 	db, err := sql.Open("postgres", dsn)
@@ -55,9 +56,8 @@ func connectToDb(name string, user string, pass string, host string) (*sql.DB,
 
 // getTweets retrieves tweets from a database.
 func getTweets(config *MyConfig) ([]Tweet, error) {
-	// get a connection.
-	db, err := connectToDb(config.DbName, config.DbUser, config.DbPass,
-		config.DbHost)
+	db, err := connectToDB(config.DBName, config.DBUser, config.DBPass,
+		config.DBHost)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ LIMIT $1
 	var tweets []Tweet
 	for rows.Next() {
 		tweet := Tweet{}
-		err = rows.Scan(&tweet.Nick, &tweet.Text, &tweet.Time, &tweet.TweetId)
+		err = rows.Scan(&tweet.Nick, &tweet.Text, &tweet.Time, &tweet.TweetID)
 		if err != nil {
 			log.Printf("Failed to scan row: %s", err.Error())
 			// TODO: is there anything to clean up?
@@ -86,6 +86,7 @@ LIMIT $1
 		}
 		tweets = append(tweets, tweet)
 	}
+
 	// I'm adding a close because I see 'unexpected EOF on client connection'
 	// in postgresql logs from this. with a close it goes away!
 	err = db.Close()
@@ -100,9 +101,9 @@ LIMIT $1
 // apparently this URL is not in the tweet status payload.
 // form:
 // https://twitter.com/<screenname>/status/<tweetid>
-func createStatusURL(screenName string, tweetId int64) string {
+func createStatusURL(screenName string, tweetID int64) string {
 	return fmt.Sprintf("https://twitter.com/%s/status/%d",
-		screenName, tweetId)
+		screenName, tweetID)
 }
 
 // main is the program entry point.
@@ -125,7 +126,7 @@ func main() {
 		log.Printf("Failed to retrieve config: %s", err.Error())
 		os.Exit(1)
 	}
-	// TODO: we could run validation on each config item... but thn again,
+	// TODO: we could run validation on each config item... but then again,
 	//   we can just try to connect to the database!
 
 	// reduce some library logging.
@@ -141,15 +142,15 @@ func main() {
 	// set up the feed's information.
 	rss := gorselib.RssFeed{}
 	rss.Name = "Twitreader"
-	rss.Uri = UriPrefix
+	rss.Uri = FeedURI
 	rss.Description = "Twitreader tweets"
 	rss.LastUpdateTime = time.Now()
 
 	// build rss items.
 	for _, tweet := range tweets {
 		item := gorselib.RssItem{
-			Title:           fmt.Sprintf("%s (#%d)", tweet.Nick, tweet.TweetId),
-			Uri:             createStatusURL(tweet.Nick, tweet.TweetId),
+			Title:           fmt.Sprintf("%s (#%d)", tweet.Nick, tweet.TweetID),
+			Uri:             createStatusURL(tweet.Nick, tweet.TweetID),
 			Description:     tweet.Text,
 			PublicationDate: tweet.Time,
 		}
