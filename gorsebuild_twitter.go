@@ -140,17 +140,17 @@ func main() {
 	}
 
 	// set up the feed's information.
-	rss := gorselib.RssFeed{}
+	rss := gorselib.RSSFeed{}
 	rss.Name = "Twitreader"
-	rss.Uri = FeedURI
+	rss.URI = FeedURI
 	rss.Description = "Twitreader tweets"
 	rss.LastUpdateTime = time.Now()
 
 	// build rss items.
 	for _, tweet := range tweets {
-		item := gorselib.RssItem{
+		item := gorselib.RSSItem{
 			Title:           fmt.Sprintf("%s", tweet.Nick, tweet.TweetID),
-			Uri:             createStatusURL(tweet.Nick, tweet.TweetID),
+			URI:             createStatusURL(tweet.Nick, tweet.TweetID),
 			Description:     tweet.Text,
 			PublicationDate: tweet.Time,
 		}
