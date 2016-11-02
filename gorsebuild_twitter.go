@@ -149,7 +149,7 @@ func main() {
 	// build rss items.
 	for _, tweet := range tweets {
 		item := gorselib.RSSItem{
-			Title:           fmt.Sprintf("%s", tweet.Nick, tweet.TweetID),
+			Title:           fmt.Sprintf("%s", tweet.Nick),
 			URI:             createStatusURL(tweet.Nick, tweet.TweetID),
 			Description:     tweet.Text,
 			PublicationDate: tweet.Time,
