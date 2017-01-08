@@ -14,9 +14,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/horgh/config"
+	"github.com/horgh/gorse/gorselib"
 	_ "github.com/lib/pq"
-	"summercat.com/config"
-	"summercat.com/gorse/gorselib"
 )
 
 // FeedURI is the URI set on the RSS feed's channel element's link element.
