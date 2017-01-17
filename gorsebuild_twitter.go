@@ -19,8 +19,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// FeedURI is the URI set on the RSS feed's channel element's link element.
-// It need not be a real URI but should be unique.
+// FeedURI is the URI set on the RSS feed's channel element's link element. It
+// need not be a real URI but should be unique.
 var FeedURI = "https://leviathan.summercat.com/tweets/"
 
 // Tweet describe a tweet pulled from the database.
@@ -37,7 +37,7 @@ type MyConfig struct {
 	DBPass string
 	DBName string
 	DBHost string
-	// the number of recent tweets to put in the xml.
+	// The number of recent tweets to put in the XML.
 	NumTweets uint64
 }
 
@@ -46,11 +46,12 @@ func connectToDB(name string, user string, pass string, host string) (*sql.DB,
 	error) {
 	dsn := fmt.Sprintf("user=%s password=%s dbname=%s host=%s", user, pass, name,
 		host)
+
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		log.Printf("Failed to connect to the database: %s", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to the database: %s", err)
 	}
+
 	return db, nil
 }
 
@@ -62,6 +63,13 @@ func getTweets(config *MyConfig) ([]Tweet, error) {
 		return nil, err
 	}
 
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Printf("Database close: %s", err)
+		}
+	}()
+
 	// get most recent tweets.
 	sql := `
 SELECT nick, text, time, tweet_id
@@ -71,49 +79,41 @@ LIMIT $1
 `
 	rows, err := db.Query(sql, config.NumTweets)
 	if err != nil {
-		log.Printf("Query failure: %s", err)
-		return nil, err
+		return nil, fmt.Errorf("query failure: %s", err)
 	}
 
 	var tweets []Tweet
 	for rows.Next() {
 		tweet := Tweet{}
+
 		err = rows.Scan(&tweet.Nick, &tweet.Text, &tweet.Time, &tweet.TweetID)
 		if err != nil {
-			log.Printf("Failed to scan row: %s", err)
-			// TODO: is there anything to clean up?
-			return nil, err
+			return nil, fmt.Errorf("failed to scan row: %s", err)
 		}
+
 		tweets = append(tweets, tweet)
 	}
 
-	// I'm adding a close because I see 'unexpected EOF on client connection'
-	// in postgresql logs from this. with a close it goes away!
-	err = db.Close()
-	if err != nil {
-		log.Printf("Failed to close database connection: %s", err)
-		return nil, err
-	}
 	return tweets, nil
 }
 
-// create a URL to the status.
-// apparently this URL is not in the tweet status payload.
-// form:
-// https://twitter.com/<screenname>/status/<tweetid>
+// Create a URL to the status.
+//
+// Apparently this URL is not in the tweet status payload.
+//
+// Form: https://twitter.com/<screenname>/status/<tweetid>
 func createStatusURL(screenName string, tweetID int64) string {
-	return fmt.Sprintf("https://twitter.com/%s/status/%d",
-		screenName, tweetID)
+	return fmt.Sprintf("https://twitter.com/%s/status/%d", screenName, tweetID)
 }
 
-// main is the program entry point.
 func main() {
 	log.SetFlags(log.Ltime | log.Llongfile)
 
-	// command line arguments.
 	outputFile := flag.String("output-file", "", "Output XML file to write.")
 	configFile := flag.String("config-file", "", "Config file")
+
 	flag.Parse()
+
 	if len(*outputFile) == 0 || len(*configFile) == 0 {
 		fmt.Println("You must provide a config file.")
 		flag.PrintDefaults()
@@ -125,26 +125,22 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to retrieve config: %s", err)
 	}
-	// TODO: We could run validation on each config item... but then again,
-	//   we can just try to connect to the database!
 
-	// reduce some library logging.
+	// TODO: We could run validation on each config item.
+
 	gorselib.SetQuiet(true)
 
-	// retrieve recent tweets.
 	tweets, err := getTweets(&settings)
 	if err != nil {
 		log.Fatalf("Failed to retrieve tweets: %s", err)
 	}
 
-	// set up the feed's information.
 	rss := gorselib.RSSFeed{}
 	rss.Name = "Twitreader"
 	rss.URI = FeedURI
 	rss.Description = "Twitreader tweets"
 	rss.LastUpdateTime = time.Now()
 
-	// build rss items.
 	for _, tweet := range tweets {
 		item := gorselib.RSSItem{
 			Title:           fmt.Sprintf("%s", tweet.Nick),
