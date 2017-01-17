@@ -115,7 +115,7 @@ func main() {
 	flag.Parse()
 
 	if len(*outputFile) == 0 || len(*configFile) == 0 {
-		fmt.Println("You must provide a config file.")
+		fmt.Println("You must provide an output file and a config file.")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
