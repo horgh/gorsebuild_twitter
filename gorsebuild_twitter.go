@@ -94,6 +94,11 @@ LIMIT $1
 		tweets = append(tweets, tweet)
 	}
 
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("failure fetching rows: %s", err)
+	}
+
 	return tweets, nil
 }
 
