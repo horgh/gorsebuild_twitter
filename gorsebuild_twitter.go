@@ -48,7 +48,7 @@ func connectToDB(name string, user string, pass string, host string) (*sql.DB,
 		host)
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		log.Printf("Failed to connect to the database: %s", err.Error())
+		log.Printf("Failed to connect to the database: %s", err)
 		return nil, err
 	}
 	return db, nil
@@ -71,7 +71,7 @@ LIMIT $1
 `
 	rows, err := db.Query(sql, config.NumTweets)
 	if err != nil {
-		log.Printf("Query failure: %s", err.Error())
+		log.Printf("Query failure: %s", err)
 		return nil, err
 	}
 
@@ -80,7 +80,7 @@ LIMIT $1
 		tweet := Tweet{}
 		err = rows.Scan(&tweet.Nick, &tweet.Text, &tweet.Time, &tweet.TweetID)
 		if err != nil {
-			log.Printf("Failed to scan row: %s", err.Error())
+			log.Printf("Failed to scan row: %s", err)
 			// TODO: is there anything to clean up?
 			return nil, err
 		}
@@ -91,7 +91,7 @@ LIMIT $1
 	// in postgresql logs from this. with a close it goes away!
 	err = db.Close()
 	if err != nil {
-		log.Printf("Failed to close database connection: %s", err.Error())
+		log.Printf("Failed to close database connection: %s", err)
 		return nil, err
 	}
 	return tweets, nil
@@ -115,18 +115,17 @@ func main() {
 	configFile := flag.String("config-file", "", "Config file")
 	flag.Parse()
 	if len(*outputFile) == 0 || len(*configFile) == 0 {
+		fmt.Println("You must provide a config file.")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
-	// load up the config.
 	var settings MyConfig
 	err := config.GetConfig(*configFile, &settings)
 	if err != nil {
-		log.Printf("Failed to retrieve config: %s", err.Error())
-		os.Exit(1)
+		log.Fatalf("Failed to retrieve config: %s", err)
 	}
-	// TODO: we could run validation on each config item... but then again,
+	// TODO: We could run validation on each config item... but then again,
 	//   we can just try to connect to the database!
 
 	// reduce some library logging.
@@ -135,8 +134,7 @@ func main() {
 	// retrieve recent tweets.
 	tweets, err := getTweets(&settings)
 	if err != nil {
-		log.Printf("Failed to retrieve tweets: %s", err.Error())
-		os.Exit(1)
+		log.Fatalf("Failed to retrieve tweets: %s", err)
 	}
 
 	// set up the feed's information.
@@ -159,7 +157,6 @@ func main() {
 
 	err = gorselib.WriteFeedXML(&rss, *outputFile)
 	if err != nil {
-		log.Printf("Failed to write XML: %s", err.Error())
-		os.Exit(1)
+		log.Fatalf("Failed to write XML: %s", err)
 	}
 }
