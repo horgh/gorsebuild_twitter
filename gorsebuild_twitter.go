@@ -135,23 +135,23 @@ func main() {
 		log.Fatalf("Failed to retrieve tweets: %s", err)
 	}
 
-	rss := gorselib.RSSFeed{}
-	rss.Name = "Twitreader"
-	rss.URI = FeedURI
-	rss.Description = "Twitreader tweets"
-	rss.LastUpdateTime = time.Now()
-
-	for _, tweet := range tweets {
-		item := gorselib.RSSItem{
-			Title:           fmt.Sprintf("%s", tweet.Nick),
-			URI:             createStatusURL(tweet.Nick, tweet.TweetID),
-			Description:     tweet.Text,
-			PublicationDate: tweet.Time,
-		}
-		rss.Items = append(rss.Items, item)
+	rss := gorselib.Feed{
+		Title:       "Twitreader",
+		Link:        FeedURI,
+		Description: "Twitreader tweets",
+		PubDate:     time.Now(),
 	}
 
-	err = gorselib.WriteFeedXML(&rss, *outputFile)
+	for _, tweet := range tweets {
+		rss.Items = append(rss.Items, gorselib.Item{
+			Title:       fmt.Sprintf("%s", tweet.Nick),
+			Link:        createStatusURL(tweet.Nick, tweet.TweetID),
+			Description: tweet.Text,
+			PubDate:     tweet.Time,
+		})
+	}
+
+	err = gorselib.WriteFeedXML(rss, *outputFile)
 	if err != nil {
 		log.Fatalf("Failed to write XML: %s", err)
 	}
