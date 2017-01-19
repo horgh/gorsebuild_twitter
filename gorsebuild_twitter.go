@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/horgh/config"
-	"github.com/horgh/gorse/gorselib"
+	"github.com/horgh/rss"
 	_ "github.com/lib/pq"
 )
 
@@ -133,14 +133,14 @@ func main() {
 
 	// TODO: We could run validation on each config item.
 
-	gorselib.SetQuiet(true)
+	rss.SetVerbose(false)
 
 	tweets, err := getTweets(&settings)
 	if err != nil {
 		log.Fatalf("Failed to retrieve tweets: %s", err)
 	}
 
-	rss := gorselib.Feed{
+	feed := rss.Feed{
 		Title:       "Twitreader",
 		Link:        FeedURI,
 		Description: "Twitreader tweets",
@@ -148,7 +148,7 @@ func main() {
 	}
 
 	for _, tweet := range tweets {
-		rss.Items = append(rss.Items, gorselib.Item{
+		feed.Items = append(feed.Items, rss.Item{
 			Title:       fmt.Sprintf("%s", tweet.Nick),
 			Link:        createStatusURL(tweet.Nick, tweet.TweetID),
 			Description: tweet.Text,
@@ -156,7 +156,7 @@ func main() {
 		})
 	}
 
-	err = gorselib.WriteFeedXML(rss, *outputFile)
+	err = rss.WriteFeedXML(feed, *outputFile)
 	if err != nil {
 		log.Fatalf("Failed to write XML: %s", err)
 	}
